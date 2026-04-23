@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oman Observer — Card Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Source+Serif+4:ital,wght@0,300;1,300&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:#F5F0E8;--navy:#0C1A2E;--blue:#005BAA;--blue-light:#4DA3FF;--red:#C0392B;--ink:#111111;--border:#C8BFA8;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0e0e0e;min-height:100vh;font-family:'Barlow',sans-serif;color:#fff;display:flex;flex-direction:column;}
+
+  header{padding:14px 24px;border-bottom:1px solid #1e1e1e;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+  .hlogo{width:32px;height:32px;}
+  header h1{font-size:14px;font-weight:700;}
+  header p{font-size:10px;color:#444;letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+  .badge{margin-left:auto;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#333;background:#161616;border:1px solid #222;padding:4px 10px;border-radius:4px;}
+
+  main{display:grid;grid-template-columns:340px 1fr;flex:1;min-height:0;overflow:hidden;}
+
+  .panel{background:#111;border-right:1px solid #1e1e1e;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:14px;}
+  .slabel{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#3a3a3a;margin-bottom:7px;}
+  .url-row{display:flex;gap:6px;}
+  .url-input{flex:1;background:#0a0a0a;border:1px solid #222;border-radius:6px;padding:8px 11px;color:#ddd;font-family:'Barlow',sans-serif;font-size:12px;outline:none;transition:border-color .2s;}
+  .url-input:focus{border-color:var(--blue);}
+  .url-input::placeholder{color:#2a2a2a;}
+  .btn-fetch{background:var(--blue);border:none;border-radius:6px;color:#fff;font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;padding:0 13px;cursor:pointer;white-space:nowrap;transition:background .2s;}
+  .btn-fetch:hover{background:#0071d4;}
+  .btn-fetch:disabled{background:#1a1a1a;color:#333;cursor:not-allowed;}
+  .status{font-size:11px;min-height:15px;display:flex;align-items:center;gap:6px;color:#444;}
+  .status.loading{color:var(--blue-light);}
+  .status.ok{color:#4caf50;}
+  .status.err{color:#ef5350;}
+  .spin{width:9px;height:9px;border-radius:50%;border:2px solid #333;border-top-color:var(--blue-light);animation:spin .7s linear infinite;display:none;}
+  .spin.on{display:block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  hr.div{border:none;border-top:1px solid #1a1a1a;}
+  .field{display:flex;flex-direction:column;gap:4px;}
+  .field label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#383838;}
+  .field input,.field textarea{background:#0a0a0a;border:1px solid #222;border-radius:5px;padding:7px 10px;color:#ccc;font-family:'Barlow',sans-serif;font-size:12px;outline:none;resize:none;transition:border-color .2s;}
+  .field input:focus,.field textarea:focus{border-color:var(--blue);}
+
+  .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+  .tbtn{border:2px solid #222;border-radius:7px;padding:8px 5px;text-align:center;cursor:pointer;transition:all .2s;background:#0a0a0a;}
+  .tbtn:hover{border-color:#3a3a3a;}
+  .tbtn.active{border-color:var(--blue);background:rgba(0,91,170,.12);}
+  .tthumb{width:100%;aspect-ratio:1080/1400;border-radius:4px;margin-bottom:5px;overflow:hidden;position:relative;}
+  .tbar{position:absolute;bottom:0;left:0;right:0;height:44%;padding:4px;display:flex;flex-direction:column;gap:2px;}
+  .tline{border-radius:2px;}
+  .tlbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#3a3a3a;}
+  .tbtn.active .tlbl{color:var(--blue-light);}
+
+  .img-wrap{background:#0a0a0a;border:1px solid #222;border-radius:6px;overflow:hidden;aspect-ratio:16/9;cursor:pointer;position:relative;}
+  .img-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+  .img-ov{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:0;transition:opacity .2s;}
+  .img-wrap:hover .img-ov{opacity:1;}
+
+  .btn-gen{width:100%;background:var(--blue);border:none;border-radius:7px;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;padding:12px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:background .2s;}
+  .btn-gen:hover{background:#0071d4;}
+  .btn-dl{width:100%;background:transparent;border:1px solid #2a2a2a;border-radius:7px;color:#666;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;padding:10px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all .2s;}
+  .btn-dl:hover:not(:disabled){border-color:#555;color:#ccc;}
+  .btn-dl:disabled{opacity:.3;cursor:not-allowed;}
+
+  /* PREVIEW */
+  .preview{background:#080808;display:flex;align-items:flex-start;justify-content:center;padding:28px;overflow:auto;}
+  .pshell{display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .plbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#222;}
+
+  /* Live card — 1080:1400 ratio, scaled to fit screen */
+  /* We display at 380px wide → height = 380*(1400/1080) ≈ 491px */
+  #live-card{
+    width:380px;
+    height:491px; /* 380 * 1400/1080 */
+    position:relative;overflow:hidden;
+    display:flex;flex-direction:column;
+    box-shadow:0 32px 80px rgba(0,0,0,.85);
+    flex-shrink:0;
+  }
+  .lc-photo{position:relative;width:100%;height:50%;overflow:hidden;flex-shrink:0;}
+  .lc-photo img.main-img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;}
+  .lc-fade{position:absolute;bottom:0;left:0;right:0;height:70px;pointer-events:none;}
+  .lc-date{position:absolute;top:11px;left:13px;font-family:'Barlow',sans-serif;font-size:8px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.45);padding:3px 8px;border-radius:2px;backdrop-filter:blur(4px);}
+  .lc-logo{position:absolute;top:9px;right:10px;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.5);}
+  .lc-logo svg{width:26px;height:26px;}
+
+  .lc-body{flex:1;padding:12px 18px 12px;display:flex;flex-direction:column;justify-content:space-between;}
+  .lc-tag{font-family:'Barlow',sans-serif;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+  .lc-hl{font-family:'Playfair Display',serif;font-weight:700;font-size:17px;line-height:1.28;margin-bottom:8px;}
+  .lc-hl em{font-style:normal;}
+  .lc-deck{font-family:'Source Serif 4',serif;font-style:italic;font-weight:300;font-size:10px;line-height:1.6;flex:1;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+  .lc-foot{display:flex;align-items:center;justify-content:space-between;border-top-width:1px;border-top-style:solid;padding-top:7px;}
+  .lc-brand-wrap{display:flex;align-items:center;gap:5px;}
+  .lc-brand-logo{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .lc-brand-logo svg{width:10px;height:10px;}
+  .lc-brand{font-family:'Barlow',sans-serif;font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;}
+  .lc-url{font-family:'Barlow',sans-serif;font-size:8px;color:#888;}
+  .lc-icons{display:flex;gap:5px;align-items:center;}
+  .lc-icons svg{width:10px;height:10px;}
+
+  /* themes */
+  #live-card.t-light{background:var(--cream);}
+  #live-card.t-light .lc-fade{background:linear-gradient(to bottom,transparent,var(--cream));}
+  #live-card.t-light .lc-body{background:var(--cream);}
+  #live-card.t-light .lc-tag{color:var(--blue);}
+  #live-card.t-light .lc-hl{color:var(--ink);}
+  #live-card.t-light .lc-hl em{color:var(--blue);}
+  #live-card.t-light .lc-deck{color:#444;}
+  #live-card.t-light .lc-foot{border-top-color:var(--border);}
+  #live-card.t-light .lc-brand{color:#003366;}
+  #live-card.t-light .lc-logo{background:var(--blue);}
+  #live-card.t-light .lc-brand-logo{background:var(--blue);}
+  #live-card.t-light .lc-icons svg{fill:#aaa;}
+
+  #live-card.t-dark{background:var(--navy);}
+  #live-card.t-dark .lc-fade{background:linear-gradient(to bottom,transparent,var(--navy));}
+  #live-card.t-dark .lc-body{background:var(--navy);}
+  #live-card.t-dark .lc-tag{color:var(--blue-light);}
+  #live-card.t-dark .lc-hl{color:#F0EAD6;}
+  #live-card.t-dark .lc-hl em{color:var(--blue-light);}
+  #live-card.t-dark .lc-deck{color:#A0A8B8;}
+  #live-card.t-dark .lc-foot{border-top-color:#1F3050;}
+  #live-card.t-dark .lc-brand{color:var(--blue-light);}
+  #live-card.t-dark .lc-url{color:#556070;}
+  #live-card.t-dark .lc-logo{background:var(--blue);}
+  #live-card.t-dark .lc-brand-logo{background:var(--blue);}
+  #live-card.t-dark .lc-icons svg{fill:#556070;}
+
+  #live-card.t-accent{background:#fff;}
+  #live-card.t-accent .lc-fade{background:linear-gradient(to bottom,transparent,#fff);}
+  #live-card.t-accent .lc-body{background:#fff;border-left:3px solid var(--red);padding-left:15px;}
+  #live-card.t-accent .lc-tag{color:var(--red);}
+  #live-card.t-accent .lc-hl{color:var(--ink);}
+  #live-card.t-accent .lc-hl em{color:var(--red);}
+  #live-card.t-accent .lc-deck{color:#444;}
+  #live-card.t-accent .lc-foot{border-top-color:#E8E0D0;}
+  #live-card.t-accent .lc-brand{color:var(--red);}
+  #live-card.t-accent .lc-logo{background:var(--red);}
+  #live-card.t-accent .lc-brand-logo{background:var(--red);}
+  #live-card.t-accent .lc-icons svg{fill:#aaa;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hlogo">
+    <svg viewBox="0 0 784.42 784.42" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#005BAA" d="M427.99,633.21V151.21c0-18.31-14.98-33.28-33.28-33.28h-5.01c-18.3,0-33.27,14.97-33.27,33.27v482.01c0,18.34,14.98,33.31,33.29,33.31h5.42c18.11-.23,32.86-15.11,32.86-33.31M530.52,615.65c0,10.97-1.99,21.5-5.6,31.24-12.77,34.41-45.96,59.09-84.61,59.09h-96.2c-38.65,0-71.84-24.68-84.61-59.09-3.62-9.75-5.6-20.27-5.6-31.24V168.74c0-49.64,40.61-90.3,90.21-90.3h96.2c49.6,0,90.21,40.66,90.21,90.3v446.91ZM784.42,392.21C784.42,175.6,608.82,0,392.21,0S0,175.6,0,392.21s175.6,392.21,392.21,392.21,392.21-175.6,392.21-392.21"/>
+    </svg>
+  </div>
+  <div><h1>Card Generator</h1><p>Oman Observer · Instagram</p></div>
+  <div class="badge">1080 × 1400 px</div>
+</header>
+
+<main>
+  <aside class="panel">
+
+    <div>
+      <div class="slabel">Article URL</div>
+      <div class="url-row">
+        <input class="url-input" id="url-in" type="url" placeholder="https://omanobserver.om/...">
+        <button class="btn-fetch" id="btn-fetch">Extract</button>
+      </div>
+      <div class="status" id="status"><div class="spin" id="spin"></div><span id="stxt">Paste a link and click Extract</span></div>
+    </div>
+
+    <hr class="div">
+
+    <div>
+      <div class="slabel">Template</div>
+      <div class="tgrid">
+        <div class="tbtn active" onclick="setTheme('light',this)">
+          <div class="tthumb" style="background:#F5F0E8">
+            <div class="tbar" style="background:#F5F0E8">
+              <div class="tline" style="height:5px;width:80%;background:#005BAA;opacity:.4"></div>
+              <div class="tline" style="height:7px;width:90%;background:#111;margin-top:2px"></div>
+              <div class="tline" style="height:4px;width:65%;background:#888;margin-top:2px"></div>
+            </div>
+          </div>
+          <div class="tlbl">Light</div>
+        </div>
+        <div class="tbtn" onclick="setTheme('dark',this)">
+          <div class="tthumb" style="background:#0C1A2E">
+            <div class="tbar" style="background:#0C1A2E">
+              <div class="tline" style="height:5px;width:80%;background:#4DA3FF;opacity:.6"></div>
+              <div class="tline" style="height:7px;width:90%;background:#F0EAD6;margin-top:2px"></div>
+              <div class="tline" style="height:4px;width:65%;background:#556070;margin-top:2px"></div>
+            </div>
+          </div>
+          <div class="tlbl">Dark</div>
+        </div>
+        <div class="tbtn" onclick="setTheme('accent',this)">
+          <div class="tthumb" style="background:#fff;border-left:2px solid #C0392B">
+            <div class="tbar" style="background:#fff">
+              <div class="tline" style="height:5px;width:80%;background:#C0392B;opacity:.5"></div>
+              <div class="tline" style="height:7px;width:90%;background:#111;margin-top:2px"></div>
+              <div class="tline" style="height:4px;width:65%;background:#888;margin-top:2px"></div>
+            </div>
+          </div>
+          <div class="tlbl">Accent</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="slabel">Content</div>
+      <div class="field"><label>Section Tag</label><input id="f-tag" value="Business · Aviation" oninput="sync()"></div>
+      <div class="field"><label>Headline</label><textarea id="f-hl" rows="3" oninput="sync()">Oman Air achieves EBITDA profitability for the first time in 15 years</textarea></div>
+      <div class="field"><label>Words to highlight</label><input id="f-acc" value="EBITDA profitability" oninput="sync()"></div>
+      <div class="field"><label>Deck / Summary</label><textarea id="f-deck" rows="3" oninput="sync()">The national carrier records a landmark financial milestone, signalling a new chapter in Oman's aviation sector after more than a decade of losses.</textarea></div>
+      <div class="field"><label>Date</label><input id="f-date" value="April 23, 2026" oninput="sync()"></div>
+      <div class="field">
+        <label>Photo</label>
+        <div class="img-wrap" onclick="document.getElementById('f-file').click()">
+          <img id="thumb" src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=80">
+          <div class="img-ov">Click to upload photo</div>
+        </div>
+        <input id="f-imgurl" type="url" placeholder="Or paste image URL…" oninput="if(this.value.startsWith('http'))loadUrl(this.value)" style="margin-top:5px">
+        <input type="file" id="f-file" accept="image/*" style="display:none" onchange="loadFile(this)">
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <button class="btn-gen" onclick="sync()">⬡ Update Preview</button>
+      <button class="btn-dl" id="btn-dl" onclick="downloadPNG()">↓ Download PNG — 1080 × 1400</button>
+    </div>
+
+  </aside>
+
+  <!-- PREVIEW -->
+  <section class="preview">
+    <div class="pshell">
+      <div class="plbl">Live Preview</div>
+
+      <div id="live-card" class="t-light">
+        <div class="lc-photo">
+          <img class="main-img" id="card-img" src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=80" crossorigin="anonymous">
+          <div class="lc-fade"></div>
+          <div class="lc-date" id="card-date">April 23, 2026</div>
+          <div class="lc-logo">
+            <svg viewBox="0 0 784.42 784.42" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+              <path fill="#fbf6e9" d="M427.99,633.21V151.21c0-18.31-14.98-33.28-33.28-33.28h-5.01c-18.3,0-33.27,14.97-33.27,33.27v482.01c0,18.34,14.98,33.31,33.29,33.31h5.42c18.11-.23,32.86-15.11,32.86-33.31M530.52,615.65c0,10.97-1.99,21.5-5.6,31.24-12.77,34.41-45.96,59.09-84.61,59.09h-96.2c-38.65,0-71.84-24.68-84.61-59.09-3.62-9.75-5.6-20.27-5.6-31.24V168.74c0-49.64,40.61-90.3,90.21-90.3h96.2c49.6,0,90.21,40.66,90.21,90.3v446.91ZM784.42,392.21C784.42,175.6,608.82,0,392.21,0S0,175.6,0,392.21s175.6,392.21,392.21,392.21,392.21-175.6,392.21-392.21"/>
+            </svg>
+          </div>
+        </div>
+        <div class="lc-body">
+          <div>
+            <div class="lc-tag" id="card-tag">Business · Aviation</div>
+            <h2 class="lc-hl" id="card-hl">Oman Air achieves <em>EBITDA profitability</em> for the first time in 15 years</h2>
+            <p class="lc-deck" id="card-deck">The national carrier records a landmark financial milestone, signalling a new chapter in Oman's aviation sector after more than a decade of losses.</p>
+          </div>
+          <div class="lc-foot">
+            <div class="lc-brand-wrap">
+              <div class="lc-brand-logo">
+                <svg viewBox="0 0 784.42 784.42" xmlns="http://www.w3.org/2000/svg">
+                  <path fill="#fbf6e9" d="M427.99,633.21V151.21c0-18.31-14.98-33.28-33.28-33.28h-5.01c-18.3,0-33.27,14.97-33.27,33.27v482.01c0,18.34,14.98,33.31,33.29,33.31h5.42c18.11-.23,32.86-15.11,32.86-33.31M530.52,615.65c0,10.97-1.99,21.5-5.6,31.24-12.77,34.41-45.96,59.09-84.61,59.09h-96.2c-38.65,0-71.84-24.68-84.61-59.09-3.62-9.75-5.6-20.27-5.6-31.24V168.74c0-49.64,40.61-90.3,90.21-90.3h96.2c49.6,0,90.21,40.66,90.21,90.3v446.91ZM784.42,392.21C784.42,175.6,608.82,0,392.21,0S0,175.6,0,392.21s175.6,392.21,392.21,392.21,392.21-175.6,392.21-392.21"/>
+                </svg>
+              </div>
+              <span class="lc-brand">Oman Observer</span>
+            </div>
+            <span class="lc-url">omanobserver.om</span>
+            <div class="lc-icons">
+              <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.736l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="plbl">Canvas export • no CORS issues</div>
+    </div>
+  </section>
+</main>
+
+<!-- offscreen canvas at full 1080×1400 -->
+<canvas id="ex" style="display:none"></canvas>
+
+<script>
+/* ── constants ── */
+const CW = 1080, CH = 1400;          // output size
+const LOGO_PATH = "M427.99,633.21V151.21c0-18.31-14.98-33.28-33.28-33.28h-5.01c-18.3,0-33.27,14.97-33.27,33.27v482.01c0,18.34,14.98,33.31,33.29,33.31h5.42c18.11-.23,32.86-15.11,32.86-33.31M530.52,615.65c0,10.97-1.99,21.5-5.6,31.24-12.77,34.41-45.96,59.09-84.61,59.09h-96.2c-38.65,0-71.84-24.68-84.61-59.09-3.62-9.75-5.6-20.27-5.6-31.24V168.74c0-49.64,40.61-90.3,90.21-90.3h96.2c49.6,0,90.21,40.66,90.21,90.3v446.91ZM784.42,392.21C784.42,175.6,608.82,0,392.21,0S0,175.6,0,392.21s175.6,392.21,392.21,392.21,392.21-175.6,392.21-392.21";
+const LOGO_VB = 784.42;              // SVG viewBox size
+
+let theme    = 'light';
+let photoB64 = null;
+
+/* preload default photo */
+toB64('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=80');
+
+/* ── theme switch ── */
+function setTheme(t, el) {
+  theme = t;
+  document.getElementById('live-card').className = 't-' + t;
+  document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ── live sync ── */
+function sync() {
+  const hl  = document.getElementById('f-hl').value;
+  const acc = document.getElementById('f-acc').value.trim();
+  document.getElementById('card-tag').textContent  = document.getElementById('f-tag').value;
+  document.getElementById('card-date').textContent = document.getElementById('f-date').value;
+  document.getElementById('card-deck').textContent = document.getElementById('f-deck').value;
+  const hlEl = document.getElementById('card-hl');
+  if (acc && hl.includes(acc)) {
+    const esc = acc.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    hlEl.innerHTML = hl.split(new RegExp(`(${esc})`, 'i'))
+      .map(p => p.toLowerCase()===acc.toLowerCase() ? `<em>${p}</em>` : p).join('');
+  } else {
+    hlEl.textContent = hl;
+  }
+}
+
+/* ── photo loading ── */
+function loadUrl(url) { toB64(url); }
+
+function loadFile(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => applyPhoto(e.target.result);
+  r.readAsDataURL(f);
+}
+
+function toB64(src) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    c.getContext('2d').drawImage(img, 0, 0);
+    try { applyPhoto(c.toDataURL('image/jpeg', 0.92)); }
+    catch(e) { photoB64 = null; }
+  };
+  img.onerror = () => { photoB64 = null; };
+  /* cache-bust so CORS header is fresh */
+  img.src = src + (src.includes('?') ? '&' : '?') + '_cb=' + Date.now();
+}
+
+function applyPhoto(b64) {
+  photoB64 = b64;
+  document.getElementById('card-img').src = b64;
+  document.getElementById('thumb').src    = b64;
+}
+
+/* ── AI extract ── */
+document.getElementById('btn-fetch').addEventListener('click', fetchArt);
+document.getElementById('url-in').addEventListener('keydown', e => { if (e.key==='Enter') fetchArt(); });
+
+async function fetchArt() {
+  const url = document.getElementById('url-in').value.trim();
+  if (!url) return;
+  setSt('loading', 'Fetching article…');
+  document.getElementById('btn-fetch').disabled = true;
+  try {
+    /* Use allorigins as a CORS proxy to fetch the article HTML */
+    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+    const res  = await fetch(proxyUrl);
+    if (!res.ok) throw new Error('proxy error');
+    const data = await res.json();
+    const html = data.contents;
+    if (!html) throw new Error('empty response');
+
+    /* Parse the HTML in a sandboxed document */
+    const parser = new DOMParser();
+    const doc    = parser.parseFromString(html, 'text/html');
+
+    /* Helper — read meta tag by property or name */
+    const meta = (attr, val) => {
+      const el = doc.querySelector(`meta[${attr}="${val}"]`);
+      return el ? el.getAttribute('content') : '';
+    };
+
+    /* Extract fields */
+    const headline =
+      meta('property','og:title') ||
+      meta('name','twitter:title') ||
+      doc.querySelector('h1')?.textContent?.trim() || '';
+
+    const deck =
+      meta('property','og:description') ||
+      meta('name','description') ||
+      meta('name','twitter:description') || '';
+
+    const imageUrl =
+      meta('property','og:image') ||
+      meta('name','twitter:image') || '';
+
+    /* Date — try common meta tags then look for time element */
+    let dateRaw =
+      meta('property','article:published_time') ||
+      meta('name','pubdate') ||
+      meta('name','date') ||
+      doc.querySelector('time')?.getAttribute('datetime') || '';
+    let dateStr = '';
+    if (dateRaw) {
+      try {
+        dateStr = new Date(dateRaw).toLocaleDateString('en-US',
+          { year:'numeric', month:'long', day:'numeric' });
+      } catch(e) { dateStr = dateRaw; }
+    }
+    if (!dateStr) {
+      /* fallback: today */
+      dateStr = new Date().toLocaleDateString('en-US',
+        { year:'numeric', month:'long', day:'numeric' });
+    }
+
+    /* Section — try og:section or article:section */
+    const section =
+      meta('property','article:section') ||
+      meta('property','og:section') || 'News';
+
+    /* Auto-detect accent — pick first 2-3 meaningful words from headline */
+    const accent = autoAccent(headline);
+
+    /* Populate fields */
+    if (headline) document.getElementById('f-hl').value   = headline;
+    if (deck)     document.getElementById('f-deck').value = deck;
+    if (section)  document.getElementById('f-tag').value  = section;
+    if (accent)   document.getElementById('f-acc').value  = accent;
+    if (dateStr)  document.getElementById('f-date').value = dateStr;
+    if (imageUrl) { document.getElementById('f-imgurl').value = imageUrl; loadUrl(imageUrl); }
+
+    sync();
+    setSt('ok', '✓ Extracted — review and edit if needed');
+
+  } catch(e) {
+    setSt('err', '✗ Could not fetch. Fill fields manually.');
+  } finally {
+    document.getElementById('btn-fetch').disabled = false;
+  }
+}
+
+/* Pick the most "newsworthy" 2-3 words to highlight —
+   skips short stop-words and picks the first substantive phrase */
+function autoAccent(headline) {
+  const stop = new Set(['a','an','the','in','on','at','to','for','of','and',
+    'or','but','is','are','was','were','be','been','by','its','it','as',
+    'with','from','that','this','has','have','had','will','after','over']);
+  const words = headline.split(/\s+/);
+  const picked = [];
+  for (const w of words) {
+    const clean = w.toLowerCase().replace(/[^a-z]/g,'');
+    if (!stop.has(clean) && clean.length > 2) {
+      picked.push(w);
+      if (picked.length === 3) break;
+    }
+  }
+  return picked.join(' ');
+}
+
+function setSt(type, msg) {
+  document.getElementById('status').className = 'status ' + type;
+  document.getElementById('stxt').textContent = msg;
+  document.getElementById('spin').className = 'spin' + (type==='loading' ? ' on' : '');
+}
+
+/* ══════════════════════════════════════════
+   CANVAS DOWNLOAD  —  1080 × 1400 px
+══════════════════════════════════════════ */
+async function downloadPNG() {
+  const btn = document.getElementById('btn-dl');
+  btn.textContent = 'Rendering…';
+  btn.disabled = true;
+  setSt('loading', 'Building 1080 × 1400 PNG…');
+
+  try {
+    await document.fonts.ready;
+
+    const cv  = document.getElementById('ex');
+    cv.width  = CW;
+    cv.height = CH;
+    const ctx = cv.getContext('2d');
+
+    /* ── palette per theme ── */
+    const PAL = {
+      light:  { bg:'#F5F0E8', tagC:'#005BAA', hlC:'#111111', acC:'#005BAA', deckC:'#555555', footB:'#C8BFA8', brandC:'#003366', logoBg:'#005BAA', logoFg:'#fbf6e9' },
+      dark:   { bg:'#0C1A2E', tagC:'#4DA3FF', hlC:'#F0EAD6', acC:'#4DA3FF', deckC:'#A0A8B8', footB:'#1F3050', brandC:'#4DA3FF', logoBg:'#005BAA', logoFg:'#fbf6e9' },
+      accent: { bg:'#ffffff', tagC:'#C0392B', hlC:'#111111', acC:'#C0392B', deckC:'#555555', footB:'#E8E0D0', brandC:'#C0392B', logoBg:'#C0392B', logoFg:'#fbf6e9' },
+    };
+    const P = PAL[theme];
+
+    /* 1. background */
+    ctx.fillStyle = P.bg;
+    ctx.fillRect(0, 0, CW, CH);
+
+    /* 2. photo zone — 50% of height */
+    const photoH = Math.round(CH * 0.50);
+    if (photoB64) {
+      const pImg = await loadImg(photoB64);
+      const sc   = Math.max(CW / pImg.width, photoH / pImg.height);
+      const dw   = pImg.width * sc, dh = pImg.height * sc;
+      ctx.drawImage(pImg, (CW - dw) / 2, 0, dw, dh);
+    } else {
+      const g = ctx.createLinearGradient(0, 0, 0, photoH);
+      g.addColorStop(0, '#1a2a4a'); g.addColorStop(1, '#050d18');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, CW, photoH);
+    }
+
+    /* 3. fade photo → body */
+    const fg = ctx.createLinearGradient(0, photoH - 200, 0, photoH);
+    fg.addColorStop(0, 'rgba(0,0,0,0)');
+    fg.addColorStop(1, hex2rgba(P.bg, 1));
+    ctx.fillStyle = fg; ctx.fillRect(0, photoH - 200, CW, 200);
+
+    /* 4. body background */
+    ctx.fillStyle = P.bg;
+    ctx.fillRect(0, photoH, CW, CH - photoH);
+
+    /* 5. accent left border */
+    if (theme === 'accent') {
+      ctx.fillStyle = '#C0392B';
+      ctx.fillRect(0, photoH, 7, CH - photoH);
+    }
+
+    /* 6. date pill */
+    const dateStr = (document.getElementById('f-date').value || '').toUpperCase();
+    ctx.font = 'bold 22px Barlow, sans-serif';
+    const dpw = ctx.measureText(dateStr).width + 48;
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    rrect(ctx, 36, 34, dpw, 42, 5); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.fillText(dateStr, 60, 55);
+
+    /* 7. logo circle on photo (top-right) */
+    const LR = 44, LCX = CW - 68, LCY = 56;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.arc(LCX, LCY, LR, 0, Math.PI * 2);
+    ctx.fillStyle = P.logoBg; ctx.fill();
+    ctx.shadowBlur = 0;
+    drawLogo(ctx, LCX, LCY, LR * 0.68, P.logoFg);
+    ctx.restore();
+
+    /* 8. body text */
+    const BX  = theme === 'accent' ? 58 : 52;
+    const BW  = CW - BX - 52;
+    let   curY = photoH + 30;
+
+    /* section tag */
+    ctx.fillStyle = P.tagC;
+    ctx.font = '700 22px Barlow, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText((document.getElementById('f-tag').value || '').toUpperCase(), BX, curY);
+    curY += 40;
+
+    /* headline */
+    const hlTxt  = document.getElementById('f-hl').value  || '';
+    const accTxt = document.getElementById('f-acc').value.trim();
+    const hlLines = drawHeadline(ctx, hlTxt, accTxt, BX, curY, BW, P.hlC, P.acC, 52, 66);
+    curY += hlLines * 66 + 18;
+
+    /* deck */
+    ctx.fillStyle = P.deckC;
+    ctx.font = '300 italic 27px "Source Serif 4", serif';
+    wrapText(ctx, document.getElementById('f-deck').value || '', BX, curY, BW, 40, 4);
+
+    /* 9. footer */
+    const FY = CH - 72;
+    ctx.strokeStyle = P.footB; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(BX, FY); ctx.lineTo(CW - 52, FY); ctx.stroke();
+
+    /* footer logo */
+    const FLR = 15, FLCX = BX + FLR + 2, FLCY = FY + 36;
+    ctx.beginPath(); ctx.arc(FLCX, FLCY, FLR, 0, Math.PI * 2);
+    ctx.fillStyle = P.logoBg; ctx.fill();
+    drawLogo(ctx, FLCX, FLCY, FLR * 0.68, P.logoFg);
+
+    /* footer text */
+    ctx.fillStyle = P.brandC;
+    ctx.font = '700 20px Barlow, sans-serif';
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.fillText('OMAN OBSERVER', BX + FLR * 2 + 10, FY + 36);
+
+    ctx.fillStyle = '#888888';
+    ctx.font = '400 19px Barlow, sans-serif';
+    ctx.fillText('omanobserver.om', BX + FLR * 2 + 10 + 310, FY + 36);
+
+    /* ── DOWNLOAD via Blob (most reliable method) ── */
+    cv.toBlob(blob => {
+      if (!blob) { setSt('err','✗ Could not create image'); btn.textContent='↓ Download PNG — 1080 × 1400'; btn.disabled=false; return; }
+      const url  = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href     = url;
+      link.download = 'oman-observer-card.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setSt('ok', '✓ Downloaded!');
+      btn.textContent = '↓ Download PNG — 1080 × 1400';
+      btn.disabled = false;
+    }, 'image/png');
+
+  } catch(err) {
+    console.error(err);
+    setSt('err', '✗ Error: ' + err.message);
+    document.getElementById('btn-dl').textContent = '↓ Download PNG — 1080 × 1400';
+    document.getElementById('btn-dl').disabled = false;
+  }
+}
+
+/* ── draw the real OO logo centred at (cx,cy) with half-size r ── */
+function drawLogo(ctx, cx, cy, r, color) {
+  const scale = (r * 2) / LOGO_VB;
+  ctx.save();
+  ctx.translate(cx - r, cy - r);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = color;
+  ctx.fill(new Path2D(LOGO_PATH));
+  ctx.restore();
+}
+
+/* ── draw headline with accent colour ── */
+function drawHeadline(ctx, text, accent, x, y, maxW, baseC, acC, fs, lineH) {
+  ctx.font = `700 ${fs}px "Playfair Display", serif`;
+  const words     = text.split(' ');
+  const accWords  = accent.toLowerCase().split(' ').filter(Boolean);
+  let   cur = [], lines = [];
+  for (const w of words) {
+    const test = [...cur, w].join(' ');
+    if (ctx.measureText(test).width > maxW && cur.length) { lines.push(cur); cur = [w]; }
+    else cur.push(w);
+  }
+  if (cur.length) lines.push(cur);
+  lines = lines.slice(0, 5);
+  lines.forEach((lw, li) => {
+    let cx = x, cy = y + li * lineH;
+    lw.forEach((w, wi) => {
+      let isAcc = false;
+      for (let s = 0; s <= lw.length - accWords.length; s++) {
+        if (accWords.every((a, ai) => lw[s+ai] && lw[s+ai].toLowerCase().replace(/[^a-z]/g,'') === a.replace(/[^a-z]/g,'')))
+          if (wi >= s && wi < s + accWords.length) { isAcc = true; break; }
+      }
+      ctx.fillStyle = isAcc ? acC : baseC;
+      const sp  = wi < lw.length - 1 ? ' ' : '';
+      ctx.fillText(w + sp, cx, cy);
+      cx += ctx.measureText(w + sp).width;
+    });
+  });
+  return lines.length;
+}
+
+/* ── helpers ── */
+function loadImg(src) {
+  return new Promise((res, rej) => {
+    const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src;
+  });
+}
+function hex2rgba(hex, a) {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function rrect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+function wrapText(ctx, text, x, y, maxW, lineH, maxLines) {
+  const words = text.split(' '); let line = '', lines = [];
+  for (const w of words) {
+    const t = line ? line+' '+w : w;
+    if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; if (lines.length >= maxLines) break; }
+    else line = t;
+  }
+  if (lines.length < maxLines) lines.push(line);
+  lines.slice(0, maxLines).forEach((l, i) => ctx.fillText(l, x, y + i * lineH));
+}
+
+sync();
+</script>
+</body>
+</html>
